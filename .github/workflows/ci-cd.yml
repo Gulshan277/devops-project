@@ -1,0 +1,74 @@
+name: CI-CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # Checkout Code
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Setup Java
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 17
+
+      # Build Backend Jar
+      - name: Build Backend
+        run: |
+          cd backend-java
+          mvn clean package
+
+      # Docker Login
+      - name: Login DockerHub
+        run: echo "${{ secrets.DOCKER_PASS }}" | docker login -u "${{ secrets.DOCKER_USER }}" --password-stdin
+
+      # Build Apache Image
+      - name: Build Apache Image
+        run: docker build -t gulshan277/apache-frontend:latest ./frontend-apache
+
+      # Build Backend Image
+      - name: Build Backend Image
+        run: docker build -t gulshan277/backend-java:latest ./backend-java
+
+      # Build HAProxy Image
+      - name: Build HAProxy Image
+        run: docker build -t gulshan277/haproxy:2.8 ./haproxy
+
+      # Push Apache Image
+      - name: Push Apache Image
+        run: docker push gulshan277/apache-frontend:latest
+
+      # Push Backend Image
+      - name: Push Backend Image
+        run: docker push gulshan277/backend-java:latest
+
+      # Push HAProxy Image
+      - name: Push HAProxy Image
+        run: docker push gulshan277/haproxy:2.8
+
+      # Setup Terraform
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      # Terraform Init
+      - name: Terraform Init
+        run: |
+          cd terraform
+          terraform init
+
+      # Terraform Apply
+      - name: Terraform Apply
+        run: |
+          cd terraform
+          terraform apply -auto-approve
