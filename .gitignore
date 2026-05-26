@@ -1,1 +1,10 @@
+target# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# Maven
 target/
+
+# Logs
+*.log/
